@@ -1,0 +1,13 @@
+  ,-----------------------------.
+  | StumbleUpon's Async Library |
+  `-----------------------------'
+
+This Java library provides some useful building blocks to build
+high-performance multi-threaded asynchronous applications in Java.
+Its implementation was inspired by Twisted's asynchronous library
+(twisted.internet.defer).
+
+Deferred allows you to easily build asynchronous processing chains
+that must trigger when an asynchronous event (I/O, RPC and whatnot)
+completes.  It can be used extensively to build an asynchronous API
+in a multi-threaded server or client library.
