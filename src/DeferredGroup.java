@@ -50,7 +50,7 @@ final class DeferredGroup<T> {
     nresults = (short) deferreds.size();
     results = new ArrayList<Object>(nresults);
 
-    if (deferreds.isEmpty()) {
+    if (nresults == 0) {
       parent.callback(results);
       return;
     }

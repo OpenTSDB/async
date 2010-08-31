@@ -773,7 +773,7 @@ public final class Deferred<T> {
    * added to the demultiplexer have been called back.
    * @param deferreds All the {@code Deferred}s to group together.
    * @return A new {@code Deferred} that will be called back once all the
-   * {@code deferreds} given in argument have been called back.  Each element
+   * {@code Deferred}s given in argument have been called back.  Each element
    * in the list will be either of type {@code <T>} or an {@link Exception}.
    * If any of the elements in the list is an {@link Exception},
    * the errback of the {@code Deferred} returned will be invoked
@@ -786,6 +786,55 @@ public final class Deferred<T> {
   public static <T>
     Deferred<ArrayList<Object>> group(final Collection<Deferred<T>> deferreds) {
     return new DeferredGroup<T>(deferreds).getDeferred();
+  }
+
+  /**
+   * Groups two {@code Deferred}s together in a single one.
+   * <p>
+   * This is semantically equivalent to:
+   * <pre>{@link #group(Collection) group}({@link java.util.Arrays#asList
+   * Arrays.asList}(d1, d2));</pre>except that it's type safe as it doesn't
+   * involve an unchecked generic array creation of type {@code Deferred<T>}
+   * for the varargs parameter passed to {@code asList}.
+   * @param d1 The first {@code Deferred} to put in the group.
+   * @param d2 The second {@code Deferred} to put in the group.
+   * @return A new {@code Deferred} that will be called back once both
+   * {@code Deferred}s given in argument have been called back.
+   * @see #group(Collection)
+   */
+  public static <T>
+    Deferred<ArrayList<Object>> group(final Deferred<T> d1,
+                                      final Deferred<T> d2) {
+    final ArrayList<Deferred<T>> tmp = new ArrayList<Deferred<T>>(2);
+    tmp.add(d1);
+    tmp.add(d2);
+    return new DeferredGroup<T>(tmp).getDeferred();
+  }
+
+  /**
+   * Groups three {@code Deferred}s together in a single one.
+   * <p>
+   * This is semantically equivalent to:
+   * <pre>{@link #group(Collection) group}({@link java.util.Arrays#asList
+   * Arrays.asList}(d1, d2, d3));</pre>except that it's type safe as it doesn't
+   * involve an unchecked generic array creation of type {@code Deferred<T>}
+   * for the varargs parameter passed to {@code asList}.
+   * @param d1 The first {@code Deferred} to put in the group.
+   * @param d2 The second {@code Deferred} to put in the group.
+   * @param d3 The third {@code Deferred} to put in the group.
+   * @return A new {@code Deferred} that will be called back once all three
+   * {@code Deferred}s given in argument have been called back.
+   * @see #group(Collection)
+   */
+  public static <T>
+    Deferred<ArrayList<Object>> group(final Deferred<T> d1,
+                                      final Deferred<T> d2,
+                                      final Deferred<T> d3) {
+    final ArrayList<Deferred<T>> tmp = new ArrayList<Deferred<T>>(3);
+    tmp.add(d1);
+    tmp.add(d2);
+    tmp.add(d3);
+    return new DeferredGroup<T>(tmp).getDeferred();
   }
 
   /**
