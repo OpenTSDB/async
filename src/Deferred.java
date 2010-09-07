@@ -412,7 +412,7 @@ public final class Deferred<T> {
    * that creates potentially infinite chains.  I can't imagine a practical
    * case that would require a chain with more callbacks than this.
    */
-  private static final byte MAX_CALLBACK_CHAIN_LENGTH = 64;
+  private static final byte MAX_CALLBACK_CHAIN_LENGTH = 127;
 
   /**
    * The state of this {@link Deferred}.
@@ -588,8 +588,8 @@ public final class Deferred<T> {
           errbacks = new LinkedList<Callback>();
         } else if (callbacks.size() == MAX_CALLBACK_CHAIN_LENGTH) {
           throw new StackOverflowError("Too many callbacks in " + this
-            + " when attempting to add cb=" + cb + '@' + cb.hashCode()
-            + ", eb=" + eb + '@' + eb.hashCode());
+            + " (size=" + callbacks.size() + ") when attempting to add cb="
+            + cb + '@' + cb.hashCode() + ", eb=" + eb + '@' + eb.hashCode());
         }
         callbacks.addLast(cb);
         errbacks.addLast(eb);
