@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
  * A thread-safe implementation of a deferred result for easy asynchronous
  * processing.
  * <p>
- * This is implemented based on Python Twisted's {@code Deferred} API.
+ * This implementation is based on Twisted's Python {@code Deferred} API.
  * <ul>
  *   <li><a href="http://su.pr/1PlbY7">Deferred Reference</a></li>
  *   <li><a href="http://su.pr/608GS1">A tutorial (Deferred in depth)</a></li>
@@ -37,6 +37,28 @@ import org.slf4j.LoggerFactory;
  * This API is a simple and elegant way of managing asynchronous and dynamic
  * "pipelines" (processing chains) without having to explicitly define a
  * finite state machine.
+ *
+ * <h1>The tl;dr version</h1>
+ *
+ * We're all busy and don't always have time to RTFM in details.  Please pay
+ * special attention to the <a href="#warranty">invariants</a> you must
+ * respect.  Other than that, here's an executive summary of what
+ * {@code Deferred} offers:
+ * <ul>
+ * <li>A {@code Deferred} is like a {@link java.util.concurrent.Future} with
+ * a dynamic {@link Callback} chain associated to it.</li>
+ * <li>When the deferred result becomes available, the callback chain gets
+ * triggered.</li>
+ * <li>The result of one callback in the chain is passed on to the next.</li>
+ * <li>When a callback returns another {@code Deferred}, the next callback in
+ * the chain doesn't get executed until that other {@code Deferred} result
+ * becomes available.</li>
+ * <li>There are actually two callback chains.  One is for normal processing,
+ * the other is for error handling / recovery.  A {@link Callback} that handles
+*  errors is called an "errback".</li>
+*  <li>{@code Deferred} is an important building block for writing easy-to-use
+*  asynchronous APIs in a thread-safe fashion.</li>
+ * </ul>
  *
  * <h1>Understanding the concept of {@code Deferred}</h1>
  *
@@ -71,8 +93,8 @@ import org.slf4j.LoggerFactory;
  * request and send it out to the remote server through a socket.  Before
  * sending it to the socket, you create a {@code Deferred} and you store it
  * somewhere, for example in a map, to keep an association between the request
- * this {@code Deferred}.  You then return this {@code Deferred} to the user,
- * this is how they will access the deferred result as soon as the RPC
+ * and this {@code Deferred}.  You then return this {@code Deferred} to the
+ * user, this is how they will access the deferred result as soon as the RPC
  * completes.
  * <p>
  * Sooner or later, the RPC will complete (successfully or not), and your
@@ -359,6 +381,7 @@ import org.slf4j.LoggerFactory;
  * argument.  Note that {@code Deferred} will only catch {@link Exception}s,
  * not any {@link Throwable} or {@link Error}.
  *
+ * <a name="warranty"></a>
  * <h1>Contract and Invariants</h1>
  *
  * Read this carefully as this is your warranty.
@@ -748,7 +771,7 @@ public final class Deferred<T> {
   /**
    * Groups multiple {@code Deferred}s together in a single one.
    * <p>
-   * Conceptually, this does the opposite of {@link #chain}, in the senses that
+   * Conceptually, this does the opposite of {@link #chain}, in the sense that
    * it demultiplexes multiple {@code Deferred}s into a single one, so that you
    * can easily take an action once all the {@code Deferred}s in the group have
    * been called back.
@@ -1124,6 +1147,22 @@ public final class Deferred<T> {
     };
   }
 
+  /**
+   * Returns a helpful string representation of this {@code Deferred}.
+   * <p>
+   * The string returned is built in {@code O(N)} where {@code N} is the
+   * number of callbacks currently in the chain.  The string isn't built
+   * entirely atomically, so it can appear to show this {@code Deferred}
+   * in a slightly inconsistent state.
+   * <p>
+   * <b>This method is not cheap</b>.  Avoid doing:
+   * <pre>{@literal
+   * Deferred<Foo> d = ..;
+   * LOG.debug("Got " + d);
+   * }</pre>
+   * The overhead of stringifying the {@code Deferred} can be significant,
+   * especially if this is in the fast-path of your application.
+   */
   public String toString() {
     final State state = this.state;  // volatile access before reading result.
     String result;
