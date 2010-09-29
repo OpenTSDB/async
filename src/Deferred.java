@@ -745,10 +745,8 @@ public final class Deferred<T> {
    * public class ResultMultiplexer {
    *   private Deferred<Foo> listeners = new Deferred<Foo>();
    *
-   *   public Deferred<Foo> addListener(Callback<Deferred<Foo>, Foo> cb) {
-   *     Deferred<Foo> d = new Deferred<Foo>();
+   *   public void addListener(Deferred<Foo> d) {
    *     listeners.chain(d);
-   *     return d;
    *   }
    *
    *   public void emitResult(Foo event) {
