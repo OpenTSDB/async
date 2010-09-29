@@ -983,11 +983,12 @@ public final class Deferred<T> {
     // because Java doesn't have real closures.
     final Object[] result = new Object[] { this };
     // Callback to wake us up when this Deferred is running.
+    // We will wait() on the intrinsic condition of this callback.
     final Callback<Object, Object> signal_cb = new Callback<Object, Object>() {
       public Object call(final Object arg) {
-        synchronized (Deferred.this) {
+        synchronized (this) {
           result[0] = Deferred.this.result;
-          Deferred.super.notifyAll();
+          super.notify();  // Guaranteed to have only 1 thread wait()ing.
         }
         return arg;
       }
@@ -1002,11 +1003,11 @@ public final class Deferred<T> {
     try {
       while (true) {
         try {
-          synchronized (this) {
+          synchronized (signal_cb) {
             addBoth((Callback<T, T>) ((Object) signal_cb));
             // If we get called back immediately, we won't enter the loop.
             while (result[0] == this) {
-              super.wait();
+              signal_cb.wait();
             }
           }
           if (result[0] instanceof Exception) {
