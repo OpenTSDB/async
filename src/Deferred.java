@@ -1113,7 +1113,9 @@ public final class Deferred<T> {
     // on that other Deferred to complete, so we're PAUSED again.
     state = State.PAUSED;
     d.addBoth(continueAfter(d, cb));
-    if (LOG.isDebugEnabled()) {
+    // If d is DONE and our callback chain is empty, we're now in state DONE.
+    // Otherwise we're still in state PAUSED.
+    if (LOG.isDebugEnabled() && state == State.PAUSED) {
       if (cb != null) {
         LOG.debug("callback=" + cb + '@' + cb.hashCode() + " returned " + d
                   + ", so the following Deferred is getting paused: " + this);
