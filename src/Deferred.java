@@ -763,17 +763,33 @@ public final class Deferred<T> {
    * @return {@code this}, always.
    */
   public Deferred<T> chain(final Deferred<T> other) {
-    final Callback<T, T> cb = new Callback<T, T>() {
-      public T call(final T arg) {
-        other.callback(arg);
-        return arg;
-      }
-      public String toString() {
-        return "chain with Deferred@" + other.hashCode();
-      }
-    };
+    final Chain<T> cb = new Chain<T>(other);
     return addCallbacks(cb, cb);
   }
+
+  /**
+   * Callback used to chain a deferred with another one.
+   */
+  private static final class Chain<T> implements Callback<T, T> {
+    private final Deferred<T> other;
+
+    /**
+     * Constructor.
+     * @param other The other deferred to chain with.
+     */
+    public Chain(final Deferred<T> other) {
+      this.other = other;
+    }
+
+    public T call(final T arg) {
+      other.callback(arg);
+      return arg;
+    }
+
+    public String toString() {
+      return "chain with Deferred@" + other.hashCode();
+    }
+  };
 
   /**
    * Groups multiple {@code Deferred}s together in a single one.
@@ -974,26 +990,7 @@ public final class Deferred<T> {
       return (T) result;
     }
 
-    final String thread = Thread.currentThread().getName();
-    // Local copy of the result.  When the callback triggers, it'll replace
-    // the reference in this array to something other than `this' -- since
-    // the result cannot possibly be `this'.  We need to use a 1-element array
-    // because Java doesn't have real closures.
-    final Object[] result = new Object[] { this };
-    // Callback to wake us up when this Deferred is running.
-    // We will wait() on the intrinsic condition of this callback.
-    final Callback<Object, Object> signal_cb = new Callback<Object, Object>() {
-      public Object call(final Object arg) {
-        synchronized (this) {
-          result[0] = Deferred.this.result;
-          super.notify();  // Guaranteed to have only 1 thread wait()ing.
-        }
-        return arg;
-      }
-      public String toString() {
-        return "wakeup thread " + thread;
-      }
-    };
+    final Signal signal_cb = new Signal();
 
     // Dealing with InterruptedException properly is a PITA.  I highly
     // recommend reading http://su.pr/ASwTmA to understand how this works.
@@ -1004,14 +1001,14 @@ public final class Deferred<T> {
           synchronized (signal_cb) {
             addBoth((Callback<T, T>) ((Object) signal_cb));
             // If we get called back immediately, we won't enter the loop.
-            while (result[0] == this) {
+            while (signal_cb.result == signal_cb) {
               signal_cb.wait();
             }
           }
-          if (result[0] instanceof Exception) {
-            throw (Exception) result[0];
+          if (signal_cb.result instanceof Exception) {
+            throw (Exception) signal_cb.result;
           }
-          return (T) result[0];
+          return (T) signal_cb.result;
         } catch (InterruptedException e) {
           LOG.debug("While joining {}: interrupted", this);
           interrupted = true;
@@ -1026,6 +1023,31 @@ public final class Deferred<T> {
       }
     }
   }
+
+  /**
+   * Callback to wake us up when this Deferred is running.
+   * We will wait() on the intrinsic condition of this callback.
+   */
+  static final class Signal implements Callback<Object, Object> {
+    // When the callback triggers, it'll replace the reference in this
+    // array to something other than `this' -- since the result cannot
+    // possibly be `this'.
+    Object result = this;
+
+    private final String thread = Thread.currentThread().getName();
+
+    public Object call(final Object arg) {
+      synchronized (this) {
+        result = arg;
+        super.notify();  // Guaranteed to have only 1 thread wait()ing.
+      }
+      return arg;
+    }
+
+    public String toString() {
+      return "wakeup thread " + thread;
+    }
+  };
 
   /**
    * Executes all the callbacks in the current chain.
@@ -1112,7 +1134,7 @@ public final class Deferred<T> {
     // If it was DONE, well we're no longer DONE because we now need to wait
     // on that other Deferred to complete, so we're PAUSED again.
     state = State.PAUSED;
-    d.addBoth(continueAfter(d, cb));
+    d.addBoth(new Continue(d, cb));
     // If d is DONE and our callback chain is empty, we're now in state DONE.
     // Otherwise we're still in state PAUSED.
     if (LOG.isDebugEnabled() && state == State.PAUSED) {
@@ -1127,35 +1149,43 @@ public final class Deferred<T> {
   }
 
   /**
-   * Creates a new {@link Callback} to resume execution after another Deferred.
-   * @param d The other Deferred we need to resume after.
-   * @param cb The callback that returned that Deferred or {@code null} if we
-   * don't know where this Deferred comes from (it was our initial result).
-   * @return A new callback to resume our own execution.
+   * A {@link Callback} to resume execution after another Deferred.
    */
-  private Callback<Object, Object> continueAfter(final Deferred d,
-                                                 final Callback cb) {
-    return new Callback<Object, Object>() {
-      public Object call(final Object arg) {
-        if (arg instanceof Deferred) {
-          handleContinuation((Deferred) arg, cb);
-        } else if (!casState(State.PAUSED, State.RUNNING)) {
-          final String cb2s = cb == null ? "null" : cb + "@" + cb.hashCode();
-          throw new AssertionError("Tried to resume the execution of "
-            + Deferred.this + ") although it's not in state=PAUSED."
-            + "  This occurred after the completion of " + d
-            + " which was originally returned by callback=" + cb2s);
-        }
-        result = arg;
-        runCallbacks();
-        return arg;
+  private final class Continue implements Callback<Object, Object> {
+    private final Deferred d;
+    private final Callback cb;
+
+    /**
+     * Constructor.
+     * @param d The other Deferred we need to resume after.
+     * @param cb The callback that returned that Deferred or {@code null} if we
+     * don't know where this Deferred comes from (it was our initial result).
+     */
+    public Continue(final Deferred d, final Callback cb) {
+      this.d = d;
+      this.cb = cb;
+    }
+
+    public Object call(final Object arg) {
+      if (arg instanceof Deferred) {
+        handleContinuation((Deferred) arg, cb);
+      } else if (!casState(State.PAUSED, State.RUNNING)) {
+        final String cb2s = cb == null ? "null" : cb + "@" + cb.hashCode();
+        throw new AssertionError("Tried to resume the execution of "
+          + Deferred.this + ") although it's not in state=PAUSED."
+          + "  This occurred after the completion of " + d
+          + " which was originally returned by callback=" + cb2s);
       }
-      public String toString() {
-        return "(continuation of Deferred@" + Deferred.super.hashCode()
-          + " after " + (cb != null ? cb + "@" + cb.hashCode() : d) + ')';
-      }
-    };
-  }
+      result = arg;
+      runCallbacks();
+      return arg;
+    }
+
+    public String toString() {
+      return "(continuation of Deferred@" + Deferred.super.hashCode()
+        + " after " + (cb != null ? cb + "@" + cb.hashCode() : d) + ')';
+    }
+  };
 
   /**
    * Returns a helpful string representation of this {@code Deferred}.

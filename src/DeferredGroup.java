@@ -64,9 +64,8 @@ final class DeferredGroup<T> {
       return;
     }
 
-    @SuppressWarnings("unchecked")
-    final Callback<T, T> notify = new Callback() {
-      public Object call(final Object arg) {
+    final class Notify<T> implements Callback<T, T> {
+      public T call(final T arg) {
         recordCompletion(arg);
         return arg;
       }
@@ -74,6 +73,8 @@ final class DeferredGroup<T> {
         return "notify DeferredGroup@" + DeferredGroup.super.hashCode();
       }
     };
+
+    final Notify<T> notify = new Notify<T>();
 
     for (final Deferred<T> d : deferreds) {
       d.addBoth(notify);
