@@ -761,8 +761,13 @@ public final class Deferred<T> {
    * }</pre>
    * @param other The {@code Deferred} to chain to this one.
    * @return {@code this}, always.
+  * @throws AssertionError if {@code this == other}.
    */
   public Deferred<T> chain(final Deferred<T> other) {
+    if (this == other) {
+      throw new AssertionError("A Deferred cannot be chained to itself."
+                               + "  this=" + this);
+    }
     final Chain<T> cb = new Chain<T>(other);
     return addCallbacks(cb, cb);
   }
