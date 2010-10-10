@@ -902,7 +902,7 @@ public final class Deferred<T> {
   public void callback(final Object initresult) {
     if (!casState(State.PENDING, State.RUNNING)) {
       throw new AssertionError("This Deferred was already called!"
-        + "  Current result=" + result + ", new result given=" + initresult);
+        + "  New result=" + initresult + ", this=" + this);
     }
     result = initresult;
     if (initresult instanceof Deferred) {
