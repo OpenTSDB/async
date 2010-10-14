@@ -43,7 +43,7 @@ final class DeferredGroup<T> {
     new Deferred<ArrayList<Object>>();
 
   /** How many results do we expect?  */
-  private final short nresults;
+  private final int nresults;
 
   /**
    * All the results for each Deferred we're grouping.
@@ -56,7 +56,7 @@ final class DeferredGroup<T> {
    * @param deferreds All the {@link Deferred}s we want to group.
    */
   public DeferredGroup(final Collection<Deferred<T>> deferreds) {
-    nresults = (short) deferreds.size();
+    nresults = deferreds.size();
     results = new ArrayList<Object>(nresults);
 
     if (nresults == 0) {
