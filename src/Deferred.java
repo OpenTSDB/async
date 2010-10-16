@@ -610,11 +610,20 @@ public final class Deferred<T> {
     } else if (eb == null) {
       throw new NullPointerException("null errback");
     }
-    // If we're DONE, switch to RUNNING atomically.
-    if (!casState(State.DONE, State.RUNNING)) {
-      // We get here if weren't DONE or if we were DONE and another thread
-      // raced with us and we lost the race.
-      synchronized (this) {
+    // We need to synchronize on `this' first before the CAS, to prevent
+    // runCallbacks from switching our state from RUNNING to DONE right
+    // before we add another callback.
+    synchronized (this) {
+      // If we're DONE, switch to RUNNING atomically.
+      if (state == State.DONE) {
+        // This "check-then-act" sequence is safe as this is the only code
+        // path that transitions from DONE to RUNNING and it's synchronized.
+        state = State.RUNNING;
+      } else {
+        // We get here if weren't DONE (most common code path)
+        //  -or-
+        // if we were DONE and another thread raced with us to change the
+        // state and we lost the race (uncommon).
         if (callbacks == null) {
           callbacks = new LinkedList<Callback>();
           errbacks = new LinkedList<Callback>();
@@ -625,9 +634,10 @@ public final class Deferred<T> {
         }
         callbacks.addLast(cb);
         errbacks.addLast(eb);
+        return (Deferred<R>) ((Deferred) this);
       }
-      return (Deferred<R>) ((Object) this);
     }
+
     if (!doCall(result instanceof Exception ? eb : cb)) {
       // While we were executing the callback, another thread could have
       // added more callbacks.  If doCall returned true, it means we're
