@@ -1143,6 +1143,17 @@ public final class Deferred<T> {
         + ", the result returned was the same Deferred object.  This is illegal"
         + ", a Deferred can't run itself recursively.  Something is wrong.");
     }
+    // Optimization: if `d' is already DONE, instead of calling
+    // adding a callback on `d' to continue when `d' completes,
+    // we atomically read the result off of `d' immediately.  To
+    // do this safely, we need to change `d's state momentarily.
+    if (d.casState(State.DONE, State.RUNNING)) {
+      result = d.result;  // No one will change `d.result' now.
+      d.state = State.DONE;
+      runCallbacks();
+      return;
+    }
+
     // Our `state' was either RUNNING or DONE.
     // If it was RUNNING, we have to suspend the callback chain here and
     // resume when the result of that other Deferred is available.
