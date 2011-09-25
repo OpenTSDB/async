@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010  StumbleUpon, Inc.  All rights reserved.
+ * Copyright (c) 2010, 2011  StumbleUpon, Inc.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -27,7 +27,6 @@ package com.stumbleupon.async;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 import org.slf4j.Logger;
@@ -444,7 +443,16 @@ public final class Deferred<T> {
    * that creates potentially infinite chains.  I can't imagine a practical
    * case that would require a chain with more callbacks than this.
    */
-  private static final byte MAX_CALLBACK_CHAIN_LENGTH = 127;
+  private static final short MAX_CALLBACK_CHAIN_LENGTH = 128;
+
+  /**
+   * How many entries do we create in the callback+errback chain by default.
+   * Because a callback is always accompanied by a corresponding errback, this
+   * value must be even and must be greater than or equal to 2.  Based on the
+   * observation that most of the time, chains have on average 2 callbacks,
+   * pre-allocating 4 entries means that no reallocation will occur.
+   */
+  private static final byte INIT_CALLBACK_CHAIN_SIZE = 4;
 
   /**
    * The state of this {@link Deferred}.
@@ -513,21 +521,47 @@ public final class Deferred<T> {
   private Object result;
 
   /**
-   * The current callback chain (can be null).
+   * The current callback and errback chains (can be null).
    * Invariants:
-   *   - If callbacks is null, errbacks is null too.
-   *   - If state is State.PENDING, both lists may  be null.
-   *   - If state is State.DONE,    both lists must be null.
-   *   - If callbacks is not null, callbacks.size() == errbacks.size().
-   *   - null is not an allowed element in either list.
-   *   - All accesses to both lists must be done while synchronizing on `this'.
+   *   - Let i = 2 * n.  The ith entry is a callback, and (i+1)th is the
+   *     corresponding errback.  In other words, even entries are callbacks
+   *     and odd entries are errbacks of the callback right before them.
+   *   - When not null, the length is between {@link #INIT_CALLBACK_CHAIN_SIZE}
+   *     and {@link #MAX_CALLBACK_CHAIN_LENGTH} * 2 (both limits inclusive).
+   *   - This array is only grown, never shrunk.
+   *   - If state is State.PENDING, this list may  be null.
+   *   - If state is State.DONE,    this list must be null.
+   *   - All accesses to this list must be done while synchronizing on `this'.
+   * Technically, this array could be used as a circular buffer to save RAM.
+   * However because the typical life of a Deferred is to accumulate callbacks
+   * and then run through them all in one shot, this would mostly lead to more
+   * complicated code with little practical gains.  Circular buffer would help
+   * when item removals and insertions are interspersed, but this is uncommon.
+   * @see #next_callback
+   * @see #last_callback
    */
-  private LinkedList<Callback> callbacks;
+  private Callback[] callbacks;
 
   /**
-   * The current "errback" chain (can be null).
+   * Index in {@link #callbacks} of the next callback to invoke.
+   * Invariants:
+   *   - When entering State.DONE, this value is reset to 0.
+   *   - All the callbacks prior to this index are null.
+   *   - If `callbacks' isn't null, the callback at this index is not null
+   *     unless {@code next_callback == last_callback}.
+   *   - All accesses to this value must be done while synchronizing on `this'.
    */
-  private LinkedList<Callback> errbacks;
+  private short next_callback;
+
+  /**
+   * Index in {@link #callbacks} past the last callback to invoke.
+   * Invariants:
+   *   - When entering State.DONE, this value is reset to 0.
+   *   - All the callbacks at and after this index are null.
+   *   - This value might be equal to {@code callbacks.length}.
+   *   - All accesses to this value must be done while synchronizing on `this'.
+   */
+  private short last_callback;
 
   /** Helper for atomic CAS on the state.  */
   private static final
@@ -625,18 +659,29 @@ public final class Deferred<T> {
         // if we were DONE and another thread raced with us to change the
         // state and we lost the race (uncommon).
         if (callbacks == null) {
-          callbacks = new LinkedList<Callback>();
-          errbacks = new LinkedList<Callback>();
-        } else if (callbacks.size() == MAX_CALLBACK_CHAIN_LENGTH) {
-          throw new StackOverflowError("Too many callbacks in " + this
-            + " (size=" + callbacks.size() + ") when attempting to add cb="
-            + cb + '@' + cb.hashCode() + ", eb=" + eb + '@' + eb.hashCode());
+          callbacks = new Callback[INIT_CALLBACK_CHAIN_SIZE];
         }
-        callbacks.addLast(cb);
-        errbacks.addLast(eb);
+        // Do we need to grow the array?
+        else if (last_callback == callbacks.length) {
+          final int oldlen = callbacks.length;
+          if (oldlen == MAX_CALLBACK_CHAIN_LENGTH * 2) {
+            throw new StackOverflowError("Too many callbacks in " + this
+              + " (size=" + (oldlen / 2) + ") when attempting to add cb="
+              + cb + '@' + cb.hashCode() + ", eb=" + eb + '@' + eb.hashCode());
+          }
+          final Callback[] newcbs = new Callback[oldlen * 2];
+          System.arraycopy(callbacks, next_callback,  // Outstanding callbacks.
+                           newcbs, 0,            // Move them to the beginning.
+                           last_callback - next_callback);  // Number of items.
+          last_callback -= next_callback;
+          next_callback = 0;
+          callbacks = newcbs;
+        }
+        callbacks[last_callback++] = cb;
+        callbacks[last_callback++] = eb;
         return (Deferred<R>) ((Deferred) this);
       }
-    }
+    }  // end of synchronized block
 
     if (!doCall(result instanceof Exception ? eb : cb)) {
       // While we were executing the callback, another thread could have
@@ -649,7 +694,7 @@ public final class Deferred<T> {
       // is going to execute them for us otherwise.
       boolean more;
       synchronized (this) {
-        more = callbacks != null && !callbacks.isEmpty();
+        more = callbacks != null && next_callback != last_callback;
       }
       if (more) {
         runCallbacks();  // Will put us back either in DONE or in PAUSED.
@@ -1076,18 +1121,19 @@ public final class Deferred<T> {
         // callbacks without holding the lock on `this', which would cause a
         // deadlock if we try to addCallbacks to `this' while a callback is
         // running.
-        if (callbacks != null) {
-          cb = callbacks.pollFirst();
-          eb = errbacks.pollFirst();
+        if (callbacks != null && next_callback != last_callback) {
+          cb = callbacks[next_callback++];
+          eb = callbacks[next_callback++];
         }
         // Also, we may need to atomically change the state to DONE.
         // Otherwise if another thread is blocked in addCallbacks right before
         // we're done processing the last element, we'd enter state DONE and
         // leave this method, and then addCallbacks would add callbacks that
         // would never get called.
-        if (cb == null) {
+        else {
           state = State.DONE;
-          callbacks = errbacks = null;
+          callbacks = null;
+          next_callback = last_callback = 0;
           break;
         }
       }
@@ -1252,20 +1298,16 @@ public final class Deferred<T> {
       .append(", result=").append(result)
       .append(", callback=");
     synchronized (this) {
-      if (callbacks == null || callbacks.isEmpty()) {
-        buf.append("<none>");
+      if (callbacks == null || next_callback == last_callback) {
+        buf.append("<none>, errback=<none>");
       } else {
-        for (final Callback cb : callbacks) {
-          buf.append(cb).append(" -> ");
+        for (int i = next_callback; i < last_callback; i += 2) {
+          buf.append(callbacks[i]).append(" -> ");
         }
         buf.setLength(buf.length() - 4);  // Remove the extra " -> ".
-      }
-      buf.append(", errback=");
-      if (errbacks == null || errbacks.isEmpty()) {
-        buf.append("<none>");
-      } else {
-        for (final Callback cb : errbacks) {
-          buf.append(cb).append(" -> ");
+        buf.append(", errback=");
+        for (int i = next_callback + 1; i < last_callback; i += 2) {
+          buf.append(callbacks[i]).append(" -> ");
         }
         buf.setLength(buf.length() - 4);  // Remove the extra " -> ".
       }
