@@ -1,13 +1,32 @@
 StumbleUpon's Async Library - User visible changes.
 
-* Version 0.1 (2010-08-26)
+* Version 1.1.0 (2011-??-??) [???????]
+
+
+* Version 1.0 (2010-10-26) [80c1235]
+
+Noteworthy changes:
+  - `MAX_CALLBACK_CHAIN_LENGTH' was increased from 64 to 127.
+  - Switch from LGPLv3+ to BSD license.
+  - Fix `join()' and `joinUninterruptibly()' to be safe with multiple
+    waiting threads.
+  - Fix a race condition when adding a callback right before the end
+    of the execution of the current callback chain.
+  - Optimization: invoke callbacks immediately when added to a Deferred
+    already in `State.DONE'.
+
+New public APIs:
+  - `Deferred.group()' and `DeferredGroupException' were added.
+
+
+* Version 0.1 (2010-08-26) [d955ddb]
 
 Initial release:
   - Deferred with Callback, inspired from Twisted's defer.py.
 
 -----
 
-Copyright (c) 2010  StumbleUpon, Inc.  All rights reserved.
+Copyright (c) 2010, 2011  StumbleUpon, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:

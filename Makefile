@@ -1,4 +1,4 @@
-# Copyright (c) 2010  StumbleUpon, Inc.  All rights reserved.
+# Copyright (c) 2010, 2011  StumbleUpon, Inc.  All rights reserved.
 # This file is part of Async HBase.
 # 
 # Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,8 @@ top_builddir = build
 package = com.stumbleupon.async
 spec_title = StumbleUpon Async Library
 spec_vendor = StumbleUpon, Inc.
-spec_version = 1.0
+# Semantic Versioning (see http://semver.org/).
+spec_version = 1.1.0
 suasync_SOURCES = \
 	src/Callback.java	\
 	src/Deferred.java	\
