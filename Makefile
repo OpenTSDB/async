@@ -37,6 +37,7 @@ suasync_SOURCES = \
 	src/Deferred.java	\
 	src/DeferredGroupException.java	\
 	src/DeferredGroup.java	\
+	src/TimeoutException.java	\
 
 suasync_LIBADD = libs/slf4j-api-1.6.0.jar
 AM_JAVACFLAGS = -Xlint

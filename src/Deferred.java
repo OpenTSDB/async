@@ -1001,9 +1001,31 @@ public final class Deferred<T> {
    * will be thrown.
    */
   public T join() throws InterruptedException, Exception {
-    return doJoin(true);
+    return doJoin(true, 0);
   }
 
+  /**
+   * Synchronously waits until this Deferred is called back or a timeout occurs.
+   * <p>
+   * This helps do synchronous operations using an asynchronous API.
+   * If this Deferred already completed, this method returns (or throws)
+   * immediately.  Otherwise, the current thread will be <em>blocked</em>
+   * and will wait until the Deferred is called back or the specified amount
+   * of time has elapsed.
+   * @param timeout The maximum time to wait in milliseconds.  A value of 0
+   * means no timeout.
+   * @return The deferred result, at this point in the callback chain.
+   * @throws InterruptedException if this thread was interrupted before the
+   * deferred result became available.
+   * @throws IllegalArgumentException If the value of timeout is negative.
+   * @throws TimeoutException if there's a timeout.
+   * @throws Exception if the deferred result is an exception, this exception
+   * will be thrown.
+   * @since 1.1
+   */
+  public T join(final long timeout) throws InterruptedException, Exception {
+    return doJoin(true, timeout);
+  }
 
   /**
    * Synchronously waits until this Deferred is called back.
@@ -1021,7 +1043,35 @@ public final class Deferred<T> {
    */
   public T joinUninterruptibly() throws Exception {
     try {
-      return doJoin(false);
+      return doJoin(false, 0);
+    } catch (InterruptedException e) {
+      throw new AssertionError("Impossible");
+    }
+  }
+
+  /**
+   * Synchronously waits until this Deferred is called back or a timeout occurs.
+   * <p>
+   * This helps do synchronous operations using an asynchronous API.
+   * If this Deferred already completed, this method returns (or throws)
+   * immediately.  Otherwise, the current thread will be <em>blocked</em>
+   * and will wait until the Deferred is called back or the specified amount
+   * of time has elapsed.  If the current thread gets interrupted while
+   * waiting, it will keep waiting anyway until the callback chain terminates,
+   * before returning (or throwing an exception) the interrupted status on the
+   * thread will be set again.
+   * @param timeout The maximum time to wait in milliseconds.  A value of 0
+   * means no timeout.
+   * @return The deferred result, at this point in the callback chain.
+   * @throws IllegalArgumentException If the value of timeout is negative.
+   * @throws TimeoutException if there's a timeout.
+   * @throws Exception if the deferred result is an exception, this exception
+   * will be thrown.
+   * @since 1.1
+   */
+  public T joinUninterruptibly(final long timeout) throws Exception {
+    try {
+      return doJoin(false, timeout);
     } catch (InterruptedException e) {
       throw new AssertionError("Impossible");
     }
@@ -1034,14 +1084,18 @@ public final class Deferred<T> {
    * {@link InterruptedException}, it will handle it and keep waiting.  In
    * this case though, the interrupted status on this thread will be set when
    * this method returns.
+   * @param timeout The maximum time to wait in milliseconds.  A value of 0
+   * means no timeout.
    * @return The deferred result, at this point in the callback chain.
+   * @throws IllegalArgumentException If the value of timeout is negative.
    * @throws InterruptedException if {@code interruptible} is {@code true} and
    * this thread was interrupted while waiting.
    * @throws Exception if the deferred result is an exception, this exception
    * will be thrown.
+   * @throws TimeoutException if there's a timeout.
    */
   @SuppressWarnings("unchecked")
-  private T doJoin(final boolean interruptible)
+  private T doJoin(final boolean interruptible, final long timeout)
   throws InterruptedException, Exception {
     if (state == State.DONE) {  // Nothing to join, we're already DONE.
       if (result instanceof Exception) {
@@ -1060,9 +1114,51 @@ public final class Deferred<T> {
         try {
           synchronized (signal_cb) {
             addBoth((Callback<T, T>) ((Object) signal_cb));
-            // If we get called back immediately, we won't enter the loop.
-            while (signal_cb.result == signal_cb) {
-              signal_cb.wait();
+            if (timeout == 0) {  // No timeout, we can use a simple loop.
+              // If we get called back immediately, we won't enter the loop.
+              while (signal_cb.result == signal_cb) {
+                signal_cb.wait();
+              }
+            } else if (timeout < 0) {
+              throw new IllegalArgumentException("negative timeout: " + timeout);
+            } else {  // We have a timeout, the loop is a bit more complicated.
+              long timeleft = timeout * 1000000L;  // Convert to nanoseconds.
+              if (timeout > 31556926000L) {  // One year in milliseconds.
+                // Most likely a programming bug.
+                LOG.warn("Timeout (" + timeout + ") is long than 1 year."
+                         + "  this=" + this);
+                if (timeleft <= 0) {  // Very unlikely.
+                  throw new IllegalArgumentException("timeout overflow after"
+                    + " conversion to nanoseconds: " + timeout);
+                }
+              }
+              // If we get called back immediately, we won't enter the loop.
+              while (signal_cb.result == signal_cb) {
+                // We can't distinguish between a timeout and a spurious wakeup.
+                // So we have to time how long we slept to figure out whether we
+                // timed out or how long we need to sleep again.  There's no
+                // better way to do this, that's how it's implemented in the JDK
+                // in `AbstractQueuedSynchronizer.ConditionObject.awaitNanos()'.
+                long duration = System.nanoTime();
+                final long millis = timeleft / 1000000L;
+                final int nanos = (int) (timeleft % 1000000);
+                // This API is annoying because it won't let us specify just
+                // nanoseconds.  The second argument must be less than 1000000.
+                signal_cb.wait(millis, nanos);
+                duration = System.nanoTime() - duration;
+                timeleft -= duration;
+                // If we have 0ns or less left, the timeout has expired
+                // already.  If we have less than 100ns left, there's no
+                // point in looping again, as just going through the loop
+                // above easily takes 100ns on a modern x86-64 CPU, after
+                // JIT compilation.  `nanoTime()' is fairly cheap since it's
+                // not even a system call, it just reads a hardware counter.
+                // But entering `wait' is pretty much guaranteed to make the
+                // loop take more than 100ns no matter what.
+                if (timeleft < 100) {
+                  throw new TimeoutException(this, timeout);
+                }
+              }
             }
           }
           if (signal_cb.result instanceof Exception) {

@@ -2,6 +2,11 @@ StumbleUpon's Async Library - User visible changes.
 
 * Version 1.1.0 (2011-??-??) [???????]
 
+New public APIs:
+  - The `join()' and `joinUninterruptibly()' methods now have an
+    overloaded version that accepts a timeout in milliseconds and
+    throws the new `TimeoutException' when a timed join times out.
+
 Noteworthy changes:
   - Callback chains are now stored in an array internally, instead of 2
     LinkedLists, which dramatically reduces memory usage and the number
