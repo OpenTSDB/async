@@ -1,0 +1,134 @@
+<project>
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.stumbleupon</groupId>
+  <artifactId>async</artifactId>
+  <version>1.1.0</version>
+  <name>StumbleUpon Async Library</name>
+  <organization>
+    <name>StumbleUpon, Inc.</name>
+    <url>http://www.stumbleupon.com</url>
+  </organization>
+  <description>
+    Building blocks for high-performance multi-threaded asynchronous
+    applications. Inspired by Twisted's async library (twisted.internet.defer).
+  </description>
+  <url>https://github.com/stumbleupon/async</url>
+  <licenses>
+    <license>
+      <name>BSD</name>
+      <url>http://www.opensource.org/licenses/BSD-3-Clause</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <scm>
+    <connection>scm:git:git@github.com:stumbleupon/async.git</connection>
+    <url>https://github.com/stumbleupon/async</url>
+  </scm>
+  <issueManagement>
+    <system>GitHub</system>
+    <url>http://github.com/stumbleupon/async/issues</url>
+  </issueManagement>
+  <developers>
+    <developer>
+      <id>tsuna</id>
+      <name>Benoit "tsuna" Sigoure</name>
+      <email>tsunanet@gmail.com</email>
+      <roles>
+        <role>developer</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
+  </developers>
+  <inceptionYear>2010</inceptionYear>
+
+  <packaging>jar</packaging>
+
+  <build>
+    <sourceDirectory>src</sourceDirectory>
+    <finalName>su${project.artifactId}-${project.version}</finalName>
+
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>2.3.2</version>
+        <configuration>
+          <compilerArgument>-Xlint</compilerArgument>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>2.8</version>
+        <executions>
+          <execution>
+            <id>attach-javadocs</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <!-- outputDirectory doesn't work in 2.8
+               https://jira.codehaus.org/browse/MJAVADOC-332 -->
+          <outputDirectory>${project.build.directory}</outputDirectory>
+          <quiet>true</quiet>
+          <validateLinks>true</validateLinks>
+          <bottom>
+            Copyright &#169; {inceptionYear}-{currentYear},
+            ${project.organization.name}
+          </bottom>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-gpg-plugin</artifactId>
+        <version>1.4</version>
+        <executions>
+         <execution>
+            <id>sign-artifacts</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>sign</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <keyname>oss@stumbleupon.com</keyname>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>[1.6.0,)</version>
+    </dependency>
+  </dependencies>
+
+  <properties>
+    <maven.test.skip>true</maven.test.skip>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <parent>
+    <groupId>org.sonatype.oss</groupId>
+    <artifactId>oss-parent</artifactId>
+    <version>7</version>
+  </parent>
+</project>
