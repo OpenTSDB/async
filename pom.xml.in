@@ -3,10 +3,10 @@
 
   <groupId>com.stumbleupon</groupId>
   <artifactId>async</artifactId>
-  <version>1.1.0</version>
-  <name>StumbleUpon Async Library</name>
+  <version>@spec_version@</version>
+  <name>@spec_title@</name>
   <organization>
-    <name>StumbleUpon, Inc.</name>
+    <name>@spec_vendor@</name>
     <url>http://www.stumbleupon.com</url>
   </organization>
   <description>
@@ -117,7 +117,7 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
-      <version>[1.6.0,)</version>
+      <version>[@SLF4J_API_VERSION@,)</version>
     </dependency>
   </dependencies>
 
