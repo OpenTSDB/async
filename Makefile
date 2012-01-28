@@ -31,7 +31,7 @@ package = com.stumbleupon.async
 spec_title = StumbleUpon Async Library
 spec_vendor = StumbleUpon, Inc.
 # Semantic Versioning (see http://semver.org/).
-spec_version = 1.1.0
+spec_version = 1.2.0-SNAPSHOT
 suasync_SOURCES = \
 	src/Callback.java	\
 	src/Deferred.java	\
