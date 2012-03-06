@@ -26,13 +26,13 @@
 all: jar
 # TODO(tsuna): Use automake to avoid relying on GNU make extensions.
 
-top_builddir = build
-package = com.stumbleupon.async
-spec_title = StumbleUpon Async Library
-spec_vendor = StumbleUpon, Inc.
+top_builddir := build
+package := com.stumbleupon.async
+spec_title := StumbleUpon Async Library
+spec_vendor := StumbleUpon, Inc.
 # Semantic Versioning (see http://semver.org/).
-spec_version = 1.2.0-SNAPSHOT
-suasync_SOURCES = \
+spec_version := 1.2.0-SNAPSHOT
+suasync_SOURCES := \
 	src/Callback.java	\
 	src/Deferred.java	\
 	src/DeferredGroupException.java	\
@@ -40,11 +40,11 @@ suasync_SOURCES = \
 	src/TimeoutException.java	\
 
 SLF4J_API_VERSION := 1.6.0
-suasync_LIBADD = libs/slf4j-api-$(SLF4J_API_VERSION).jar
-AM_JAVACFLAGS = -Xlint
-package_dir = $(subst .,/,$(package))
-classes=$(suasync_SOURCES:src/%.java=$(top_builddir)/$(package_dir)/%.class)
-jar = $(top_builddir)/suasync-$(spec_version).jar
+suasync_LIBADD := libs/slf4j-api-$(SLF4J_API_VERSION).jar
+AM_JAVACFLAGS := -Xlint
+package_dir := $(subst .,/,$(package))
+classes := $(suasync_SOURCES:src/%.java=$(top_builddir)/$(package_dir)/%.class)
+jar := $(top_builddir)/suasync-$(spec_version).jar
 
 jar: $(jar)
 
