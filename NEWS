@@ -5,6 +5,11 @@ StumbleUpon's Async Library - User visible changes.
 Noteworthy changes:
   - Optimization: the internal state of a Deferred is now captured
     in a plain `int' instead of using an enum.
+  - The maximum number of callbacks allowed on a Deferred has been
+    significantly increased, from 128 to 16383, to allow for some
+    use cases where a large number of operations are waiting on a
+    single asynchronous operation to complete.  This implementation
+    cannot support more than this many callbacks without refactoring.
 
 
 * Version 1.1.0 (2011-09-27) [cf62d8d]

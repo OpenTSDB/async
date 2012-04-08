@@ -439,11 +439,14 @@ public final class Deferred<T> {
 
   /**
    * Maximum length of the callback chain we allow.
-   * Set this to some aggressive limit to quickly detect problems in code
+   * Set this to some arbitrary limit to quickly detect problems in code
    * that creates potentially infinite chains.  I can't imagine a practical
    * case that would require a chain with more callbacks than this.
    */
-  private static final short MAX_CALLBACK_CHAIN_LENGTH = 128;
+  private static final short MAX_CALLBACK_CHAIN_LENGTH = Short.MAX_VALUE >> 1;
+  // NOTE: The current implementation cannot support more than this many
+  // callbacks because indexes used to access the `callbacks' array are
+  // of type `short' to save memory.
 
   /**
    * How many entries do we create in the callback+errback chain by default.
