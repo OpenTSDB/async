@@ -2,6 +2,10 @@ StumbleUpon's Async Library - User visible changes.
 
 * Version 1.2.0 (2012-??-??) [???????]
 
+Noteworthy changes:
+  - Optimization: the internal state of a Deferred is now captured
+    in a plain `int' instead of using an enum.
+
 
 * Version 1.1.0 (2011-09-27) [cf62d8d]
 
