@@ -57,7 +57,7 @@ $(top_builddir)/.javac-stamp: $(suasync_SOURCES)
 
 classes_with_nested_classes = $(classes:$(top_builddir)/%.class=%*.class)
 
-pkg_version = \
+pkg_version := \
   `git rev-list --pretty=format:%h HEAD --max-count=1 | sed 1d || echo unknown`
 $(top_builddir)/manifest: $(top_builddir)/.javac-stamp .git/HEAD
 	{ echo "Specification-Title: $(spec_title)"; \
@@ -75,7 +75,7 @@ $(jar): $(top_builddir)/manifest $(top_builddir)/.javac-stamp $(classes)
 
 doc: $(top_builddir)/api/index.html
 
-JDK_JAVADOC=http://download.oracle.com/javase/6/docs/api
+JDK_JAVADOC := http://docs.oracle.com/javase/6/docs/api
 $(top_builddir)/api/index.html: $(suasync_SOURCES)
 	javadoc -d $(top_builddir)/api -classpath $(get_dep_classpath) \
           -link $(JDK_JAVADOC) $(suasync_SOURCES)
