@@ -1,4 +1,4 @@
-# Copyright (c) 2010-2012  StumbleUpon, Inc.  All rights reserved.
+# Copyright (c) 2010-2012  The SUAsync Authors.  All rights reserved.
 # 
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -27,8 +27,8 @@ all: jar
 
 top_builddir := build
 package := com.stumbleupon.async
-spec_title := StumbleUpon Async Library
-spec_vendor := StumbleUpon, Inc.
+spec_title := SUAsync Library
+spec_vendor := The SUAsync Authors
 # Semantic Versioning (see http://semver.org/).
 spec_version := 1.3.0-SNAPSHOT
 suasync_SOURCES := \
