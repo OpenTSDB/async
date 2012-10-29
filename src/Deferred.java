@@ -443,7 +443,7 @@ public final class Deferred<T> {
    * that creates potentially infinite chains.  I can't imagine a practical
    * case that would require a chain with more callbacks than this.
    */
-  private static final short MAX_CALLBACK_CHAIN_LENGTH = Short.MAX_VALUE >> 1;
+  private static final short MAX_CALLBACK_CHAIN_LENGTH = 1 << 14;
   // NOTE: The current implementation cannot support more than this many
   // callbacks because indexes used to access the `callbacks' array are
   // of type `short' to save memory.
@@ -665,7 +665,7 @@ public final class Deferred<T> {
         // Do we need to grow the array?
         else if (last_callback == callbacks.length) {
           final int oldlen = callbacks.length;
-          if (oldlen == MAX_CALLBACK_CHAIN_LENGTH * 2) {
+          if (oldlen == MAX_CALLBACK_CHAIN_LENGTH) {
             throw new StackOverflowError("Too many callbacks in " + this
               + " (size=" + (oldlen / 2) + ") when attempting to add cb="
               + cb + '@' + cb.hashCode() + ", eb=" + eb + '@' + eb.hashCode());
