@@ -412,7 +412,7 @@ import org.slf4j.LoggerFactory;
  *       intermediate result, as this would cause an infinite recursion.</li>
  *   <li>You must not build a cycle of mutually dependant {@code Deferred}s,
  *       as this would cause an infinite recursion (thankfully, it will
- *       quickly fail with a {@link StackOverflowError}).</li>
+ *       quickly fail with a {@link CallbackOverflowError}).</li>
  *   <li>Callbacks and errbacks cannot receive a {@code Deferred} in
  *       argument.  This is because they always receive the result of a
  *       previous callback, and when the result becomes a {@code Deferred},
@@ -631,7 +631,7 @@ public final class Deferred<T> {
    * @param cb The callback to register.
    * @param eb Th errback to register.
    * @return {@code this} with an "updated" type.
-   * @throws StackOverflowError if there are too many callbacks in this chain.
+   * @throws CallbackOverflowError if there are too many callbacks in this chain.
    * The maximum number of callbacks allowed in a chain is set by the
    * implementation.  The limit is high enough that you shouldn't have to worry
    * about this exception (which is why it's an {@link Error} actually).  If
@@ -666,7 +666,7 @@ public final class Deferred<T> {
         else if (last_callback == callbacks.length) {
           final int oldlen = callbacks.length;
           if (oldlen == MAX_CALLBACK_CHAIN_LENGTH) {
-            throw new StackOverflowError("Too many callbacks in " + this
+            throw new CallbackOverflowError("Too many callbacks in " + this
               + " (size=" + (oldlen / 2) + ") when attempting to add cb="
               + cb + '@' + cb.hashCode() + ", eb=" + eb + '@' + eb.hashCode());
           }
@@ -977,7 +977,7 @@ public final class Deferred<T> {
       // Deferreds we go through while executing a callback chain, which seems
       // like an unnecessary complication for uncommon cases (bad code). Plus,
       // when that actually happens and people write buggy code that creates
-      // cyclic chains, they will quickly get a StackOverflowError.
+      // cyclic chains, they will quickly get a CallbackOverflowError.
       final Deferred d = (Deferred) initresult;
       if (this == d) {
         throw new AssertionError("A Deferred cannot be given to itself"

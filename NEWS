@@ -6,6 +6,10 @@ Noteworthy changes:
   - Fix the maximum number of callbacks and the check enforcing it.
     The maximum number is now 16384 (up from 16383) and an exception
     is properly raised when the limit is reached.
+  - When the limit on the number of callbacks is hit, an exception
+    of type `CallbackOverflowError' is now raised instead of a
+    `StackOverflowError'.  Because `CallbackOverflowError' inherits
+    from `StackOverflowError', this change is backward compatible.
 
 
 * Version 1.2.0 (2012-04-08) [640e4e3]

@@ -33,6 +33,7 @@ spec_vendor := StumbleUpon, Inc.
 spec_version := 1.3.0-SNAPSHOT
 suasync_SOURCES := \
 	src/Callback.java	\
+	src/CallbackOverflowError.java	\
 	src/Deferred.java	\
 	src/DeferredGroupException.java	\
 	src/DeferredGroup.java	\
