@@ -1,10 +1,16 @@
 The SUAsync Library - User visible changes.
 
+* Version 1.3.1 (2012-11-03) [???????]
+
+Noteworthy changes:
+  - Restore the limit on the size of the callback chain to 16383.
+
+
 * Version 1.3.0 (2012-10-28) [05c513b]
 
 Noteworthy changes:
   - Fix the maximum number of callbacks and the check enforcing it.
-    The maximum number is now 16384 (up from 16383) and an exception
+    The maximum number is now 8192 (down from 16383) and an exception
     is properly raised when the limit is reached.
   - When the limit on the number of callbacks is hit, an exception
     of type `CallbackOverflowError' is now raised instead of a
