@@ -1375,13 +1375,14 @@ public final class Deferred<T> {
    */
   public String toString() {
     final int state = this.state;  // volatile access before reading result.
-    String result;
-    if (this.result == null) {
-      result = "null";
-    } else if (this.result instanceof Deferred) {  // Nested Deferreds
-      result = "Deferred@" + this.result.hashCode();  // are hard to read.
+    final Object result = this.result;
+    final String str;
+    if (result == null) {
+      str = "null";
+    } else if (result instanceof Deferred) {  // Nested Deferreds
+      str = "Deferred@" + result.hashCode();  // are hard to read.
     } else {
-      result = this.result.toString();
+      str = result.toString();
     }
 
     // We can't easily estimate how much space we'll need for the callback
@@ -1390,10 +1391,10 @@ public final class Deferred<T> {
     // If result is a very long string, we may end up wasting some space, but
     // it's not likely to happen and even less likely to be a problem.
     final StringBuilder buf = new StringBuilder((9 + 10 + 7 + 7
-                                                 + result.length()) * 2);
+                                                 + str.length()) * 2);
     buf.append("Deferred@").append(super.hashCode())
       .append("(state=").append(stateString(state))
-      .append(", result=").append(result)
+      .append(", result=").append(str)
       .append(", callback=");
     synchronized (this) {
       if (callbacks == null || next_callback == last_callback) {
