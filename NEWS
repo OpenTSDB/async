@@ -1,6 +1,6 @@
 The SUAsync Library - User visible changes.
 
-* Version 1.3.3 (2013-06-16) [???????]
+* Version 1.3.3 (2013-06-16) [fc509ea]
 
 Noteworthy changes:
   - Fixed the signature of the group() methods so as to preserve the
