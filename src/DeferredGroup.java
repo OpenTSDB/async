@@ -39,8 +39,7 @@ final class DeferredGroup<T> {
    * The Deferred we'll callback when all Deferreds in the group have been
    * called back.
    */
-  private final Deferred<ArrayList<Object>> parent =
-    new Deferred<ArrayList<Object>>();
+  private final Deferred<ArrayList<T>> parent = new Deferred<ArrayList<T>>();
 
   /** How many results do we expect?  */
   private final int nresults;
@@ -48,6 +47,7 @@ final class DeferredGroup<T> {
   /**
    * All the results for each Deferred we're grouping.
    * Need to acquires this' monitor before changing.
+   * Each result is either of type T, or an Exception.
    */
   private final ArrayList<Object> results;
 
@@ -84,7 +84,7 @@ final class DeferredGroup<T> {
   /**
    * Returns the parent {@link Deferred} of the group.
    */
-  public Deferred<ArrayList<Object>> getDeferred() {
+  public Deferred<ArrayList<T>> getDeferred() {
     return parent;
   }
 

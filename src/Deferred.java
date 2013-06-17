@@ -892,7 +892,7 @@ public final class Deferred<T> {
    * group complete.
    */
   public static <T>
-    Deferred<ArrayList<Object>> group(final Collection<Deferred<T>> deferreds) {
+    Deferred<ArrayList<T>> group(final Collection<Deferred<T>> deferreds) {
     return new DeferredGroup<T>(deferreds).getDeferred();
   }
 
@@ -911,8 +911,7 @@ public final class Deferred<T> {
    * @see #group(Collection)
    */
   public static <T>
-    Deferred<ArrayList<Object>> group(final Deferred<T> d1,
-                                      final Deferred<T> d2) {
+    Deferred<ArrayList<T>> group(final Deferred<T> d1, final Deferred<T> d2) {
     final ArrayList<Deferred<T>> tmp = new ArrayList<Deferred<T>>(2);
     tmp.add(d1);
     tmp.add(d2);
@@ -935,9 +934,9 @@ public final class Deferred<T> {
    * @see #group(Collection)
    */
   public static <T>
-    Deferred<ArrayList<Object>> group(final Deferred<T> d1,
-                                      final Deferred<T> d2,
-                                      final Deferred<T> d3) {
+    Deferred<ArrayList<T>> group(final Deferred<T> d1,
+                                 final Deferred<T> d2,
+                                 final Deferred<T> d3) {
     final ArrayList<Deferred<T>> tmp = new ArrayList<Deferred<T>>(3);
     tmp.add(d1);
     tmp.add(d2);

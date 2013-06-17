@@ -1,5 +1,13 @@
 The SUAsync Library - User visible changes.
 
+* Version 1.3.3 (2013-06-16) [???????]
+
+Noteworthy changes:
+  - Fixed the signature of the group() methods so as to preserve the
+    type T of the Deferreds being grouped, instead of forcing them
+    to be just Object.  This is a compatible API change.
+
+
 * Version 1.3.2 (2013-05-30) [bf284c8]
 
 Noteworthy changes:
