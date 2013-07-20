@@ -41,8 +41,11 @@ final class DeferredGroup<T> {
    */
   private final Deferred<ArrayList<T>> parent = new Deferred<ArrayList<T>>();
 
-  /** How many results do we expect?  */
-  private final int nresults;
+  /**
+   * How many results do we expect?.
+   * Need to acquires this' monitor before changing.
+   */
+  private int nresults;
 
   /**
    * All the results for each Deferred we're grouping.
@@ -54,8 +57,17 @@ final class DeferredGroup<T> {
   /**
    * Constructor.
    * @param deferreds All the {@link Deferred}s we want to group.
+   * @param ordered If true, the results will be presented in the same order
+   * as the {@link Deferred}s are in the {@code deferreds} argument.
+   * If false, results will be presented in the order in which they arrive.
+   * In other words, assuming that {@code deferreds} is a list of three
+   * {@link Deferred} objects {@code [A, B, C]}, then if {@code ordered} is
+   * true, {@code results} will be {@code [result A, result B, result C]}
+   * whereas if {@code ordered} is false then the order in {@code results}
+   * is determined by the order in which callbacks fire on A, B, and C.
    */
-  public DeferredGroup(final Collection<Deferred<T>> deferreds) {
+  public DeferredGroup(final Collection<Deferred<T>> deferreds,
+                       final boolean ordered) {
     nresults = deferreds.size();
     results = new ArrayList<Object>(nresults);
 
@@ -64,6 +76,7 @@ final class DeferredGroup<T> {
       return;
     }
 
+    // Callback used to collect results in the order in which they appear.
     final class Notify<T> implements Callback<T, T> {
       public T call(final T arg) {
         recordCompletion(arg);
@@ -74,10 +87,37 @@ final class DeferredGroup<T> {
       }
     };
 
-    final Notify<T> notify = new Notify<T>();
+    // Callback that preserves the original orders of the Deferreds.
+    final class NotifyOrdered<T> implements Callback<T, T> {
+      private final int index;
+      NotifyOrdered(int index) {
+        this.index = index;
+      }
+      public T call(final T arg) {
+        recordCompletion(arg, index);
+        return arg;
+      }
+      public String toString() {
+        return "notify #" + index + " DeferredGroup@"
+          + DeferredGroup.super.hashCode();
+      }
+    };
 
-    for (final Deferred<T> d : deferreds) {
-      d.addBoth(notify);
+    if (ordered) {
+      int i = 0;
+      for (final Deferred<T> d : deferreds) {
+        results.add(null);  // ensures results.set(i, result) is valid.
+        // Note: it's important to add the callback after the line above,
+        // as the callback can fire at any time once it's been added, and
+        // if it fires before results.set(i, result) is valid, we'll get
+        // an IndexOutOfBoundsException.
+        d.addBoth(new NotifyOrdered<T>(i++));
+      }
+    } else {
+      final Notify<T> notify = new Notify<T>();
+      for (final Deferred<T> d : deferreds) {
+        d.addBoth(notify);
+      }
     }
   }
 
@@ -93,30 +133,50 @@ final class DeferredGroup<T> {
    * @param result The result of the deferred.
    */
   private void recordCompletion(final Object result) {
-    int size;
+    int left;
     synchronized (this) {
       results.add(result);
-      size = results.size();
+      left = --nresults;
     }
-    if (size == nresults) {
-      // From this point on, we no longer need to synchronize in order to
-      // access `results' since we know we're done, so no other thread is
-      // going to call this method on this instance again.
-      for (final Object r : results) {
-        if (r instanceof Exception) {
-          parent.callback(new DeferredGroupException(results, (Exception) r));
-          return;
-        }
+    if (left == 0) {
+      done();
+    }
+  }
+
+  /**
+   * Called back when one of the {@link Deferred} in the group completes.
+   * @param result The result of the deferred.
+   * @param index The index of the result.
+   */
+  private void recordCompletion(final Object result, final int index) {
+    int left;
+    synchronized (this) {
+      results.set(index, result);
+      left = --nresults;
+    }
+    if (left == 0) {
+      done();
+    }
+  }
+
+  /** Called once we have obtained all the results of this group.  */
+  private void done() {
+    // From this point on, we no longer need to synchronize in order to
+    // access `results' since we know we're done, so no other thread is
+    // going to call recordCompletion() again.
+    for (final Object r : results) {
+      if (r instanceof Exception) {
+        parent.callback(new DeferredGroupException(results, (Exception) r));
+        return;
       }
-      parent.callback(results);
     }
+    parent.callback(results);
   }
 
   public String toString() {
     return "DeferredGroup"
       + "(parent=" + parent
-      + ", # results=" + results.size() + " / " + nresults
-      + ')';
+      + ", # results=" + results.size() + " / " + nresults + " left)";
   }
 
 }

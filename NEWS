@@ -1,5 +1,12 @@
 The SUAsync Library - User visible changes.
 
+* Version 1.4.0 (2013-??-??) [???????]
+
+New public APIs:
+  - `groupInOrder(Collection)' was added to provide an alternative to
+    `group(...)' that preserves the order of the results.
+
+
 * Version 1.3.3 (2013-06-16) [fc509ea]
 
 Noteworthy changes:

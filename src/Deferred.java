@@ -889,11 +889,28 @@ public final class Deferred<T> {
    * <p>
    * There's no guarantee on the order of the results in the deferred list
    * returned, it depends on the order in which the {@code Deferred}s in the
-   * group complete.
+   * group complete.  If you want to preserve the order, use
+   * {@link #groupInOrder(Collection)} instead.
    */
   public static <T>
     Deferred<ArrayList<T>> group(final Collection<Deferred<T>> deferreds) {
-    return new DeferredGroup<T>(deferreds).getDeferred();
+    return new DeferredGroup<T>(deferreds, false).getDeferred();
+  }
+
+  /**
+   * Groups multiple {@code Deferred}s together in a single one.
+   * <p>
+   * This is the same thing as {@link #group(Collection)} except that we
+   * guarantee we preserve the order of the {@code Deferred}s.
+   * @param deferreds All the {@code Deferred}s to group together.
+   * @return A new {@code Deferred} that will be called back once all the
+   * {@code Deferred}s given in argument have been called back.
+   * @see #group(Collection)
+   * @since 1.4
+   */
+  public static <T>
+    Deferred<ArrayList<T>> groupInOrder(final Collection<Deferred<T>> deferreds) {
+    return new DeferredGroup<T>(deferreds, true).getDeferred();
   }
 
   /**
@@ -915,7 +932,7 @@ public final class Deferred<T> {
     final ArrayList<Deferred<T>> tmp = new ArrayList<Deferred<T>>(2);
     tmp.add(d1);
     tmp.add(d2);
-    return new DeferredGroup<T>(tmp).getDeferred();
+    return new DeferredGroup<T>(tmp, false).getDeferred();
   }
 
   /**
@@ -941,7 +958,7 @@ public final class Deferred<T> {
     tmp.add(d1);
     tmp.add(d2);
     tmp.add(d3);
-    return new DeferredGroup<T>(tmp).getDeferred();
+    return new DeferredGroup<T>(tmp, false).getDeferred();
   }
 
   /**
