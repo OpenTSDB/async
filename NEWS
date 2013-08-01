@@ -1,6 +1,6 @@
 The SUAsync Library - User visible changes.
 
-* Version 1.4.0 (2013-??-??) [???????]
+* Version 1.4.0 (2013-08-01) [fe17b98]
 
 New public APIs:
   - `groupInOrder(Collection)' was added to provide an alternative to
