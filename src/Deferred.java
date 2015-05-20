@@ -1130,6 +1130,7 @@ public final class Deferred<T> {
     try {
       while (true) {
         try {
+          boolean timedout = false;
           synchronized (signal_cb) {
             addBoth((Callback<T, T>) ((Object) signal_cb));
             if (timeout == 0) {  // No timeout, we can use a simple loop.
@@ -1174,12 +1175,16 @@ public final class Deferred<T> {
                 // But entering `wait' is pretty much guaranteed to make the
                 // loop take more than 100ns no matter what.
                 if (timeleft < 100) {
-                  throw new TimeoutException(this, timeout);
+                  timedout = true;
+                  break;
                 }
               }
             }
           }
-          if (signal_cb.result instanceof Exception) {
+          if (timedout && signal_cb.result == signal_cb) {
+            // Give up if we timed out *and* we haven't gotten a result yet.
+            throw new TimeoutException(this, timeout);
+          } else if (signal_cb.result instanceof Exception) {
             throw (Exception) signal_cb.result;
           }
           return (T) signal_cb.result;
