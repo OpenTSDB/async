@@ -1,5 +1,11 @@
 The SUAsync Library - User visible changes.
 
+* Version 1.4.1 (2015-05-20) [???????]
+
+Noteworthy changes:
+  - Fixed a deadlock when joining a Deferred with a timeout (#4).
+
+
 * Version 1.4.0 (2013-08-01) [fe17b98]
 
 New public APIs:

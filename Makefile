@@ -30,7 +30,7 @@ package := com.stumbleupon.async
 spec_title := SUAsync Library
 spec_vendor := The SUAsync Authors
 # Semantic Versioning (see http://semver.org/).
-spec_version := 1.4.0
+spec_version := 1.4.1
 suasync_SOURCES := \
 	src/Callback.java	\
 	src/CallbackOverflowError.java	\
