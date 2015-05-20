@@ -36,12 +36,9 @@ import org.slf4j.LoggerFactory;
  * A thread-safe implementation of a deferred result for easy asynchronous
  * processing.
  * <p>
- * This implementation is based on Twisted's Python {@code Deferred} API.
- * <ul>
- *   <li><a href="http://su.pr/1PlbY7">Deferred Reference</a></li>
- *   <li><a href="http://su.pr/608GS1">A tutorial (Deferred in depth)</a></li>
- *   <li><a href="http://su.pr/2D6G9l">Source code of {@code defer.py}</a></li>
- * </ul>
+ * This implementation is based on <a href="http://goo.gl/avIOWO">Twisted's
+ * Python {@code Deferred} API</a>.
+ *
  * This API is a simple and elegant way of managing asynchronous and dynamic
  * "pipelines" (processing chains) without having to explicitly define a
  * finite state machine.
@@ -397,7 +394,7 @@ import org.slf4j.LoggerFactory;
  *   <li>A {@code Deferred} can receive only one initial result.</li>
  *   <li>Only one thread at a time is going to execute the callback chain.</li>
  *   <li>Each action taken by a callback
- *       <a href="http://su.pr/2IB74L#64127">happens-before</a> the next
+ *       <a href="http://goo.gl/361hAV">happens-before</a> the next
  *       callback is invoked.  In other words, if a callback chain manipulates
  *       a variable (and no one else manipulates it), no synchronization is
  *       required.</li>
@@ -519,7 +516,7 @@ public final class Deferred<T> {
    * The new Java memory model thus guarantees that accesses to this reference
    * will always be consistent, since they always happen after a volatile
    * access to the state associated with this reference.  See also the FAQ on
-   * JSR 133 (Java Memory Model) at http://su.pr/2WxCIb#volatile
+   * <a href="http://goo.gl/q14k27">JSR 133 (Java Memory Model)</a>.
    */
   private Object result;
 
@@ -1125,7 +1122,7 @@ public final class Deferred<T> {
     final Signal signal_cb = new Signal();
 
     // Dealing with InterruptedException properly is a PITA.  I highly
-    // recommend reading http://su.pr/ASwTmA to understand how this works.
+    // recommend reading http://goo.gl/aeOOXT to understand how this works.
     boolean interrupted = false;
     try {
       while (true) {
