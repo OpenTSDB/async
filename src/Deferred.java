@@ -28,9 +28,11 @@ package com.stumbleupon.async;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 /**
  * A thread-safe implementation of a deferred result for easy asynchronous
@@ -566,6 +568,12 @@ public final class Deferred<T> {
   /** Helper for atomic CAS on the state.  */
   private static final AtomicIntegerFieldUpdater<Deferred> stateUpdater =
     AtomicIntegerFieldUpdater.newUpdater(Deferred.class, "state");
+
+  /**
+   * Captures the current context map of the current thread. This map is later
+   * reconstituted on the thread that begins the callback chain.
+   */
+  private final Map mdcContext = MDC.getCopyOfContextMap();
 
   /**
    * Atomically compares and swaps the state of this Deferred.
@@ -1226,9 +1234,27 @@ public final class Deferred<T> {
   };
 
   /**
+   * Sets the MDC context to the given {@code map}. It returns the original map
+   * that was in effect before the call took place. If {@code map} is null, the
+   * MDC context is cleared.
+   * @param map The context map to set.
+   * @return the original map that was in effect before this call took place.
+   */
+  private Map setMdc(Map map) {
+    Map old = MDC.getCopyOfContextMap();
+    if (map != null) {
+      MDC.setContextMap(map);
+    } else {
+      MDC.clear();
+    }
+    return old;
+  }
+
+  /**
    * Executes all the callbacks in the current chain.
    */
   private void runCallbacks() {
+    Map old = setMdc(mdcContext);
     while (true) {
       Callback cb = null;
       Callback eb = null;
@@ -1265,6 +1291,7 @@ public final class Deferred<T> {
       //          + "), result=" + result
       //          + " in " + (System.nanoTime() - start) / 1000 + "us");
     }
+    setMdc(old);
   }
 
   /**
