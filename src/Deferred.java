@@ -424,7 +424,7 @@ import org.slf4j.LoggerFactory;
  * </ul>
  * @param <T> The type of the deferred result.
  */
-public final class Deferred<T> {
+public class Deferred<T> {
 
   // I apologize in advance for all the @SuppressWarnings("unchecked") in this
   // class.  I feel like I'm cheating the type system but, to be honest, Java's
